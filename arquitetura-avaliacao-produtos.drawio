@@ -1,0 +1,59 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Página-1" id="6dGjO8WmRVlspomIHnFH">
+    <mxGraphModel dx="1414" dy="823" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="B_eRc9dUOn7LHaizahLj-11" edge="1" parent="1" source="B_eRc9dUOn7LHaizahLj-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="B_eRc9dUOn7LHaizahLj-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&amp;nbsp;Controller&lt;div&gt;Recebe a avaliação do cliente&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="160" x="320" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-9" edge="1" parent="1" source="B_eRc9dUOn7LHaizahLj-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="B_eRc9dUOn7LHaizahLj-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Service&lt;div&gt;Valida a nota de 1 a 5 estrelas&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="160" x="320" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-19" edge="1" parent="1" source="B_eRc9dUOn7LHaizahLj-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="B_eRc9dUOn7LHaizahLj-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Repository&lt;div&gt;Salva e consulta as avliações&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="160" x="320" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-10" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;labelPadding=0 4;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="B_eRc9dUOn7LHaizahLj-4">
+          <mxGeometry relative="1" x="-0.0149" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="555" />
+            </Array>
+            <mxPoint x="640" y="410" as="sourcePoint" />
+            <mxPoint x="600" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-14" connectable="0" parent="B_eRc9dUOn7LHaizahLj-10" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=1;defaultLabelBackgroundColor=page;labelPadding=0 4;" value="SIM" vertex="1">
+          <mxGeometry relative="1" x="-0.4033" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-16" edge="1" parent="1" source="B_eRc9dUOn7LHaizahLj-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="B_eRc9dUOn7LHaizahLj-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-17" connectable="0" parent="B_eRc9dUOn7LHaizahLj-16" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=1;defaultLabelBackgroundColor=page;labelPadding=0 4;" value="NÃO" vertex="1">
+          <mxGeometry relative="1" x="0.0308" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-8" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;" value="Nota entre 1 e 5?" vertex="1">
+          <mxGeometry height="100" width="120" x="580" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-15" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Avaliação rejeitada&amp;nbsp;&lt;div&gt;Nota inválida&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="160" x="830" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="B_eRc9dUOn7LHaizahLj-18" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Avaliação salva com sucesso" vertex="1">
+          <mxGeometry height="90" width="160" x="320" y="680" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
