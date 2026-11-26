@@ -47,10 +47,10 @@ class ChatService:
             ChatMessage(session_id=session_id, role="user", content=user_message)
         )
 
-        if not settings.openai_api_key or settings.openai_api_key.startswith("sk-proj-substitua"):
+        if not settings.gemini_api_key or settings.gemini_api_key.startswith("cole-sua-chave"):
             fallback_msg = (
-                "Configure a variável `OPENAI_API_KEY` no arquivo `backend/.env` e reinicie o container "
-                "para ativar o agente LangGraph completo."
+                "Configure a variável `GEMINI_API_KEY` no arquivo `backend/.env` e reinicie o container "
+                "para ativar o agente LangGraph com Gemini."
             )
             yield f"event: token\ndata: {json.dumps({'token': fallback_msg}, ensure_ascii=False)}\n\n"
             await self.chat_repo.add_message(
@@ -80,13 +80,18 @@ class ChatService:
             kind = event["event"]
             if kind == "on_chat_model_stream":
                 chunk = event["data"]["chunk"]
-                if chunk.content:
-                    token = str(chunk.content)
+                content = chunk.content
+                if isinstance(content, list):
+                    token = "".join(
+                        part.get("text", "") if isinstance(part, dict) else str(part)
+                        for part in content
+                    )
+                else:
+                    token = str(content) if content else ""
+
+                if token:
                     full_response += token
                     yield f"event: token\ndata: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
-            elif kind == "on_tool_start":
-                tool_name = event.get("name", "ferramenta")
-                yield f"event: status\ndata: {json.dumps({'status': f'Consultando {tool_name}...'}, ensure_ascii=False)}\n\n"
 
         if ui_actions:
             yield f"event: ui_actions\ndata: {json.dumps({'actions': ui_actions}, ensure_ascii=False)}\n\n"

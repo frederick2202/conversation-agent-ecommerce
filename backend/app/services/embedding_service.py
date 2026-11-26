@@ -1,16 +1,17 @@
 import hashlib
 import math
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from app.core.config import settings
 
 
 class EmbeddingService:
     def __init__(self) -> None:
-        has_valid_key = bool(settings.openai_api_key) and not settings.openai_api_key.startswith("sk-proj-substitua")
+        has_valid_key = bool(settings.gemini_api_key) and not settings.gemini_api_key.startswith("cole-sua-chave")
         self._client = (
-            OpenAIEmbeddings(
-                api_key=settings.openai_api_key,
-                model=settings.openai_embedding_model,
+            GoogleGenerativeAIEmbeddings(
+                google_api_key=settings.gemini_api_key,
+                model=settings.gemini_embedding_model,
+                output_dimensionality=1536,
             )
             if has_valid_key
             else None
@@ -18,8 +19,11 @@ class EmbeddingService:
 
     async def generate_embedding(self, text: str) -> list[float]:
         if self._client:
-            return await self._client.aembed_query(text)
-        # Fallback determinístico local para testes/execução sem chave externa
+            try:
+                return await self._client.aembed_query(text)
+            except Exception as exc:
+                print(f"[EMBEDDING FALLBACK] Erro na Gemini API ({exc}). Usando vetor local.")
+        # Fallback determinístico local
         dim = 1536
         digest = hashlib.sha256(text.lower().encode("utf-8")).digest()
         raw = [((digest[i % len(digest)] / 255.0) * 2.0 - 1.0) for i in range(dim)]

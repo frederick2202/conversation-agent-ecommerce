@@ -1,5 +1,5 @@
 from langchain_core.messages import SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import MessagesState, START, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
@@ -18,11 +18,10 @@ Regras estritas:
 
 
 def build_lumen_graph(tools: list):
-    llm = ChatOpenAI(
-        api_key=settings.openai_api_key,
-        model=settings.openai_chat_model,
+    llm = ChatGoogleGenerativeAI(
+        google_api_key=settings.gemini_api_key,
+        model=settings.gemini_chat_model,
         temperature=0.2,
-        streaming=True,
     ).bind_tools(tools)
 
     async def agent_node(state: MessagesState):
