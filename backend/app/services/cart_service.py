@@ -1,3 +1,8 @@
+"""
+Regras de negócio do carrinho de compras (adicionar, alterar quantidade, resumo e checkout).
+O carrinho é identificado por `session_id` (sem login de usuário).
+"""
+
 from decimal import Decimal
 import uuid
 
@@ -14,6 +19,10 @@ class CartService:
         self.product_repo = product_repo
 
     async def get_cart_summary(self, session_id: str) -> CartSummaryResponse:
+        """Retorna os itens do carrinho com preços calculados, total de unidades e subtotal.
+
+        Cria um carrinho vazio se a sessão ainda não tiver um.
+        """
         cart = await self.cart_repo.get_or_create_by_session(session_id)
         details: list[CartItemDetail] = []
         subtotal = Decimal("0.00")
@@ -22,6 +31,7 @@ class CartService:
         for item in cart.items:
             variant = item.variant
             product = variant.product
+            # Preço sempre calculado na hora (não é congelado no item): reflete alterações do catálogo.
             unit_price = variant.price_override or product.price
             line_total = unit_price * item.quantity
             subtotal += line_total
@@ -50,6 +60,15 @@ class CartService:
     async def add_variant_to_cart(
         self, session_id: str, variant_id: uuid.UUID, quantity: int = 1
     ) -> CartSummaryResponse:
+        """Adiciona `quantity` unidades de uma variação ao carrinho.
+
+        Se a variação já estiver no carrinho, soma à quantidade existente. Valida o estoque
+        considerando o total desejado (existente + novo). Retorna o resumo atualizado.
+
+        Raises:
+            ValidationDomainException: quantidade < 1 ou estoque insuficiente.
+            NotFoundException: variação inexistente.
+        """
         if quantity < 1:
             raise ValidationDomainException("A quantidade mínima para adicionar ao carrinho é 1.")
 
@@ -80,6 +99,11 @@ class CartService:
     async def update_item_quantity(
         self, session_id: str, item_id: uuid.UUID, quantity: int
     ) -> CartSummaryResponse:
+        """Define a quantidade de um item do carrinho; quantidade <= 0 remove o item.
+
+        Observação: o `session_id` é usado apenas para montar o resumo de retorno; a busca
+        do item é feita somente por `item_id`.
+        """
         item = await self.cart_repo.get_item_by_id(item_id)
         if not item:
             raise NotFoundException("Item não encontrado no carrinho.")
@@ -97,6 +121,10 @@ class CartService:
         return await self.get_cart_summary(session_id)
 
     async def checkout(self, session_id: str) -> dict:
+        """Finaliza a compra de forma SIMULADA: gera um código de pedido e esvazia o carrinho.
+
+        Não há integração com pagamento, nem baixa de estoque ou persistência de pedido.
+        """
         summary = await self.get_cart_summary(session_id)
         if summary.total_items == 0:
             raise ValidationDomainException("Seu carrinho está vazio.")

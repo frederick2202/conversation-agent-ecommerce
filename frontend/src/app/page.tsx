@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * Página inicial (rota "/") — vitrine/catálogo da loja.
+ *
+ * Mantém o estado de filtro (categoria + busca textual), carrega os produtos
+ * da API e orquestra os componentes de catálogo:
+ * Sidebar (desktop) e TopHeader controlam os filtros; HeroBento + TrustBar
+ * aparecem apenas na visão padrão (sem filtros); ProductCard lista os itens e
+ * ProductDetailModal abre os detalhes do produto selecionado.
+ */
+
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Product } from "@/types";
@@ -12,11 +22,14 @@ import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  /** Categoria selecionada; "Tudo" = sem filtro (a API ignora esse valor). */
   const [category, setCategory] = useState("Tudo");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  /** Produto aberto no modal de detalhes (`null` = modal fechado). */
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  /** Busca produtos aplicando os filtros atuais. Também é reutilizada após nova avaliação. */
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -27,6 +40,8 @@ export default function HomePage() {
     }
   }, [category, search]);
 
+  // Debounce de 220 ms: recarrega a lista quando categoria/busca mudam,
+  // evitando uma requisição a cada tecla digitada na busca.
   useEffect(() => {
     const timer = setTimeout(loadProducts, 220);
     return () => clearTimeout(timer);
@@ -34,8 +49,10 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0B172E]">
+      {/* Menu lateral fixo (visível apenas em telas lg+) */}
       <Sidebar selectedCategory={category} onSelectCategory={setCategory} />
 
+      {/* Coluna principal, deslocada pela largura do Sidebar (w-60) no desktop */}
       <div className="lg:pl-60 flex flex-col min-h-screen">
         <TopHeader
           category={category}
@@ -45,6 +62,7 @@ export default function HomePage() {
         />
 
         <main className="flex-1 pb-20">
+          {/* Banner de destaques + selos de confiança: só na vitrine sem filtros */}
           {!search && category === "Tudo" && products.length > 0 && (
             <>
               <HeroBento featured={products} onOpenProduct={setSelectedProduct} />
@@ -52,6 +70,7 @@ export default function HomePage() {
             </>
           )}
 
+          {/* Grade de produtos (id "catalogo" é alvo de links âncora) */}
           <section id="catalogo" className="mx-auto max-w-6xl px-4 lg:px-8 mt-10">
             <div className="mb-5 flex items-end justify-between">
               <div>
@@ -72,6 +91,7 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* Estados: carregando (skeleton) → vazio → lista de cards */}
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[1, 2, 3, 4].map((n) => (
@@ -93,6 +113,7 @@ export default function HomePage() {
         </main>
       </div>
 
+      {/* Modal de detalhes; ao publicar avaliação recarrega a lista para atualizar nota/contagem */}
       <ProductDetailModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}

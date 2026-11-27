@@ -1,3 +1,12 @@
+"""
+Orquestra a conversa com o agente de IA e transmite a resposta via Server-Sent Events (SSE).
+
+Formato do stream produzido por `stream_reply` (consumido pelo widget de chat do frontend):
+    event: token       data: {"token": "<pedaço de texto>"}    -> repetido várias vezes (efeito "digitando")
+    event: ui_actions  data: {"actions": [...]}                -> opcional, enviado uma vez ao final
+    event: done        data: {}                                -> fim da resposta
+"""
+
 from collections.abc import AsyncGenerator
 import json
 from langchain_core.messages import AIMessage, HumanMessage
@@ -27,6 +36,7 @@ class ChatService:
         self.faq_service = faq_service
 
     async def get_history(self, session_id: str) -> list[ChatHistoryItem]:
+        """Retorna o histórico salvo da sessão (usado pelo frontend ao reabrir o chat)."""
         rows = await self.chat_repo.get_history(session_id)
         return [
             ChatHistoryItem(
@@ -39,14 +49,27 @@ class ChatService:
         ]
 
     async def clear_session(self, session_id: str) -> None:
+        """Apaga todo o histórico de mensagens da sessão (o carrinho não é afetado)."""
         await self.chat_repo.clear_session(session_id)
 
     async def stream_reply(self, session_id: str, user_message: str) -> AsyncGenerator[str, None]:
+        """Processa a mensagem do usuário e gera a resposta do agente em formato SSE.
+
+        Passos:
+        1. Carrega o histórico recente (contexto) e salva a mensagem do usuário.
+        2. Se não houver chave do Gemini configurada, responde com uma mensagem de orientação.
+        3. Monta as ferramentas + grafo LangGraph e executa, repassando os tokens do LLM conforme chegam.
+        4. Ao final, envia as ações de UI coletadas pelas ferramentas e salva a resposta completa.
+        """
+        # Histórico é lido ANTES de salvar a nova mensagem, para não duplicá-la no contexto.
+        # Atenção: o repositório ordena do mais antigo para o mais novo, então `limit=16`
+        # retorna as 16 PRIMEIRAS mensagens da sessão.
         history_rows = await self.chat_repo.get_history(session_id, limit=16)
         await self.chat_repo.add_message(
             ChatMessage(session_id=session_id, role="user", content=user_message)
         )
 
+        # Valores começando com "cole-sua-chave" são tratados como placeholder (chave não configurada).
         if not settings.gemini_api_key or settings.gemini_api_key.startswith("cole-sua-chave"):
             fallback_msg = (
                 "Configure a variável `GEMINI_API_KEY` no arquivo `backend/.env` e reinicie o container "
@@ -59,12 +82,14 @@ class ChatService:
             yield "event: done\ndata: {}\n\n"
             return
 
+        # Converte o histórico do banco para o formato de mensagens do LangChain.
         lc_messages = [
             HumanMessage(content=r.content) if r.role == "user" else AIMessage(content=r.content)
             for r in history_rows
         ]
         lc_messages.append(HumanMessage(content=user_message))
 
+        # Lista preenchida pelas ferramentas durante a execução do grafo (ver app/agent/tools.py).
         ui_actions: list[dict] = []
         tools = build_agent_tools(
             session_id=session_id,
@@ -76,11 +101,15 @@ class ChatService:
         graph = build_lumen_graph(tools)
 
         full_response = ""
+        # `astream_events` emite eventos internos do grafo; aqui só interessam os pedaços (chunks)
+        # de texto gerados pelo LLM ("on_chat_model_stream").
         async for event in graph.astream_events({"messages": lc_messages}, version="v2"):
             kind = event["event"]
             if kind == "on_chat_model_stream":
                 chunk = event["data"]["chunk"]
                 content = chunk.content
+                # O Gemini pode devolver o conteúdo como string ou como lista de partes
+                # (ex.: [{"type": "text", "text": "..."}]); normalizamos para texto puro.
                 if isinstance(content, list):
                     token = "".join(
                         part.get("text", "") if isinstance(part, dict) else str(part)
@@ -96,6 +125,7 @@ class ChatService:
         if ui_actions:
             yield f"event: ui_actions\ndata: {json.dumps({'actions': ui_actions}, ensure_ascii=False)}\n\n"
 
+        # Persiste a resposta completa (e as ações de UI) para reconstruir o histórico depois.
         await self.chat_repo.add_message(
             ChatMessage(
                 session_id=session_id,

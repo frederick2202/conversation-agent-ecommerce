@@ -1,3 +1,7 @@
+"""
+Acesso a dados do histórico de conversa com o agente (tabela `chat_messages`).
+"""
+
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.entities import ChatMessage
@@ -8,6 +12,7 @@ class ChatRepository:
         self.db = db
 
     async def get_history(self, session_id: str, limit: int = 20) -> list[ChatMessage]:
+        """Mensagens da sessão em ordem cronológica (mais antigas primeiro), limitadas a `limit`."""
         stmt = (
             select(ChatMessage)
             .where(ChatMessage.session_id == session_id)

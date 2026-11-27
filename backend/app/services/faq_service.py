@@ -1,3 +1,8 @@
+"""
+Regras de negócio das FAQs (base de conhecimento do agente).
+Toda criação/edição recalcula o embedding para que a busca semântica (RAG) fique atualizada.
+"""
+
 import uuid
 from app.core.exceptions import NotFoundException
 from app.models.entities import Faq
@@ -12,6 +17,7 @@ class FaqService:
         self.embedding_service = embedding_service
 
     def _build_embedding_text(self, category: str, question: str, answer: str) -> str:
+        """Texto que representa a FAQ para gerar o embedding (combina categoria, pergunta e resposta)."""
         return f"Categoria: {category}. Pergunta: {question}. Resposta: {answer}"
 
     async def list_faqs(self) -> list[FaqResponse]:
@@ -34,6 +40,7 @@ class FaqService:
         if not faq:
             raise NotFoundException("FAQ não encontrada.")
 
+        # Atualização parcial (PATCH): aplica só os campos enviados na requisição.
         for field, value in payload.model_dump(exclude_unset=True).items():
             setattr(faq, field, value)
 
@@ -50,6 +57,7 @@ class FaqService:
         await self.repo.delete(faq)
 
     async def search_faqs(self, query: str, limit: int = 3) -> list[FaqResponse]:
+        """Busca semântica: retorna as `limit` FAQs mais próximas da pergunta (usada pelo agente)."""
         vector = await self.embedding_service.generate_embedding(query)
         faqs = await self.repo.semantic_search(vector, limit=limit)
         return [FaqResponse.model_validate(f) for f in faqs]

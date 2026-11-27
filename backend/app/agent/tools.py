@@ -1,3 +1,20 @@
+"""
+Ferramentas (tools) que o agente de IA pode chamar durante a conversa.
+
+Como funciona:
+- Cada função decorada com `@tool` vira uma ferramenta do LangChain. O NOME da função,
+  a DOCSTRING e os PARÂMETROS são enviados ao LLM, que os usa para decidir quando e como
+  chamá-la — por isso as docstrings das ferramentas são instruções para o modelo e devem
+  ser mantidas curtas e precisas.
+- As ferramentas retornam strings JSON (lidas pelo LLM para compor a resposta).
+- Além disso, algumas ferramentas anexam "ações de UI" em `collected_ui_actions`. Essa lista
+  é enviada ao frontend no fim da resposta (evento SSE `ui_actions`) e vira componentes
+  interativos no chat:
+    * SELECT_VARIANT -> botões para o cliente escolher a variação; cada botão reenvia ao chat
+                        o texto do campo `prompt` (ex.: "Adicionar ao carrinho o produto X na variação Y").
+    * CART_UPDATED   -> resumo do carrinho atualizado + link para o checkout.
+"""
+
 import json
 from typing import Optional
 import uuid
@@ -16,11 +33,23 @@ def build_agent_tools(
     faq_service: FaqService,
     collected_ui_actions: list[dict],
 ):
+    """Cria as ferramentas do agente vinculadas à sessão atual.
+
+    As ferramentas são closures: capturam `session_id`, os services e a lista
+    `collected_ui_actions` (mutada in-place) sem expor esses detalhes ao LLM.
+
+    Args:
+        session_id: identificador da sessão do cliente (mesmo usado no carrinho).
+        product_service / cart_service / faq_service: services de domínio já instanciados.
+        collected_ui_actions: lista onde as ferramentas acumulam ações de UI para o frontend.
+    """
+
     @tool
     async def buscar_produto(consulta: str) -> str:
         """Consulta nome, preço, resumo, variações e estoque em tempo real por nome ou SKU do produto."""
         product = await product_service.find_product_for_chat(consulta)
         if not product:
+            # Orienta o LLM a tentar a busca semântica em seguida.
             return json.dumps(
                 {"encontrado": False, "mensagem": "Produto não encontrado exatamente. Use sugerir_similares."},
                 ensure_ascii=False,
@@ -31,12 +60,14 @@ def build_agent_tools(
                 "variant_id": str(v.id),
                 "attributes": v.attributes,
                 "stock": v.stock_quantity,
+                # Preço efetivo: o da variação, se houver override; senão o preço base do produto.
                 "price": float(v.price_override or product.price),
             }
             for v in product.variants
         ]
         available = [v for v in variants_info if v["stock"] > 0]
         if available:
+            # Já oferece ao cliente os botões de variação disponíveis (somente com estoque).
             collected_ui_actions.append(
                 {
                     "type": "SELECT_VARIANT",
@@ -45,8 +76,10 @@ def build_agent_tools(
                     "options": [
                         {
                             "variant_id": v["variant_id"],
+                            # Texto do botão, ex.: "cor: Preto • armazenamento: 512GB".
                             "label": " • ".join(f"{k}: {val}" for k, val in v["attributes"].items()),
                             "price": v["price"],
+                            # Mensagem enviada ao agente quando o cliente clica no botão.
                             "prompt": f"Adicionar ao carrinho o produto {product.sku} na variação {v['variant_id']}",
                         }
                         for v in available
@@ -97,22 +130,27 @@ def build_agent_tools(
         if not product:
             return json.dumps({"sucesso": False, "motivo": "Produto não encontrado. Consulte antes."}, ensure_ascii=False)
 
+        # Considera apenas variações com estoque suficiente para a quantidade pedida.
         available_variants = [v for v in product.variants if v.stock_quantity >= quantidade]
         if not available_variants:
             return json.dumps({"sucesso": False, "motivo": "Produto sem estoque suficiente no momento."}, ensure_ascii=False)
 
+        # 1) Tenta usar a variação informada pelo LLM (só é aceita se estiver entre as disponíveis).
         chosen_variant = None
         if variant_id:
             try:
                 parsed_id = uuid.UUID(variant_id)
                 chosen_variant = next((v for v in available_variants if v.id == parsed_id), None)
             except ValueError:
+                # O LLM pode enviar um ID malformado; nesse caso tratamos como "não escolhido".
                 chosen_variant = None
 
         if not chosen_variant:
+            # 2) Se só existe uma opção e o produto não exige escolha, seleciona automaticamente.
             if len(available_variants) == 1 and not product.required_variation_keys:
                 chosen_variant = available_variants[0]
             else:
+                # 3) Caso contrário, pede ao cliente para escolher (botões SELECT_VARIANT) e aborta a adição.
                 collected_ui_actions.append(
                     {
                         "type": "SELECT_VARIANT",
@@ -140,10 +178,13 @@ def build_agent_tools(
                 )
 
         try:
+            # O CartService revalida estoque (considerando o que já está no carrinho) e persiste o item.
             summary = await cart_service.add_variant_to_cart(session_id, chosen_variant.id, quantidade)
         except DomainException as exc:
+            # Erros de negócio viram resposta para o LLM explicar ao cliente, em vez de quebrar o chat.
             return json.dumps({"sucesso": False, "motivo": exc.message}, ensure_ascii=False)
 
+        # Informa o frontend para exibir o resumo do carrinho e atualizar o contador/drawer.
         collected_ui_actions.append(
             {
                 "type": "CART_UPDATED",
@@ -179,6 +220,7 @@ def build_agent_tools(
     @tool
     async def consultar_faq(pergunta: str) -> str:
         """Consulta políticas atualizadas da Lumen (trocas, frete, garantia, pagamento) via RAG no pgvector."""
+        # RAG: recupera as FAQs semanticamente mais próximas; o LLM redige a resposta com base nelas.
         faqs = await faq_service.search_faqs(pergunta, limit=3)
         return json.dumps(
             [{"categoria": f.category, "pergunta": f.question, "resposta": f.answer} for f in faqs],

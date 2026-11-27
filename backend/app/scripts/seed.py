@@ -1,3 +1,14 @@
+"""
+Script de carga inicial (seed) do banco com produtos e FAQs de exemplo.
+
+Como executar (a partir da pasta `backend/`):
+    python -m app.scripts.seed
+
+É idempotente: só insere produtos se a tabela de produtos estiver vazia, e só insere FAQs
+se a tabela de FAQs estiver vazia. Os dados passam pelos services, então os embeddings
+(pgvector) são gerados automaticamente.
+"""
+
 import asyncio
 from decimal import Decimal
 from sqlalchemy import text
@@ -12,6 +23,8 @@ from app.services.embedding_service import EmbeddingService
 from app.services.faq_service import FaqService
 from app.services.product_service import ProductService
 
+# Catálogo inicial. Cada produto declara as variações obrigatórias (`required_variation_keys`)
+# e as variações compráveis com estoque próprio (estoque 0 = indisponível).
 INITIAL_PRODUCTS = [
     ProductCreate(
         sku="LMN-NB-001",
@@ -123,6 +136,7 @@ INITIAL_PRODUCTS = [
     ),
 ]
 
+# Políticas da loja consultadas pelo agente via RAG (ferramenta `consultar_faq`).
 INITIAL_FAQS = [
     FaqCreate(
         category="Trocas e Devoluções",
@@ -143,6 +157,8 @@ INITIAL_FAQS = [
 
 
 async def run_seed() -> None:
+    """Garante o schema do banco e insere os dados iniciais caso as tabelas estejam vazias."""
+    # Mesmo preparo feito no startup da API (app/main.py), para o seed poder rodar de forma independente.
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)

@@ -1,3 +1,11 @@
+"""
+Testes unitários dos services (regras de negócio).
+
+Os repositórios e o serviço de embeddings são substituídos por `AsyncMock`, e as entidades
+por `SimpleNamespace`; assim os testes rodam sem banco de dados e sem chamar a API do Gemini.
+Executar a partir de `backend/` com: `pytest`.
+"""
+
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace

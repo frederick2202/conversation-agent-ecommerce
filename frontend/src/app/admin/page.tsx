@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * Painel administrativo (rota "/admin") — sem autenticação (ambiente de demonstração).
+ *
+ * Permite cadastrar/excluir FAQs e produtos. No backend, cada FAQ/produto
+ * salvo tem seu embedding gerado (Gemini) e gravado no PostgreSQL com pgvector,
+ * de modo que o agente de IA passa a encontrá-lo imediatamente na busca
+ * semântica (RAG) — daí os textos "Reindexação Automática" (requisito RF04).
+ *
+ * Organização: duas abas ("faqs" e "products"), cada uma com um formulário de
+ * cadastro e a listagem; exclusões passam por um modal de confirmação.
+ */
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Package, PlusCircle, Trash2 } from "lucide-react";
@@ -9,6 +21,7 @@ import { Faq, Product } from "@/types";
 
 export default function AdminPage() {
   const { showToast } = useStore();
+  /** Aba ativa do painel. */
   const [tab, setTab] = useState<"faqs" | "products">("faqs");
 
   // Estado FAQs
@@ -18,6 +31,7 @@ export default function AdminPage() {
   const [answer, setAnswer] = useState("");
 
   // Estado Produtos
+  // (campos do formulário de cadastro simplificado: cria o produto com uma única variação "Padrão")
   const [products, setProducts] = useState<Product[]>([]);
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
@@ -29,18 +43,22 @@ export default function AdminPage() {
   const [stock, setStock] = useState("10");
 
   // Confirmação irreversível
+  // (guarda o que será excluído; quando não nulo, o modal de confirmação é exibido)
   const [confirmDelete, setConfirmDelete] = useState<{ type: "faq" | "product"; id: string; label: string } | null>(null);
 
+  /** Recarrega FAQs e produtos em paralelo (após qualquer criação/exclusão). */
   const loadAll = async () => {
     const [f, p] = await Promise.all([api.listFaqs(), api.listProducts()]);
     setFaqs(f);
     setProducts(p);
   };
 
+  // Carga inicial; erros são ignorados (ex.: backend ainda subindo).
   useEffect(() => {
     loadAll().catch(() => {});
   }, []);
 
+  /** Cria uma FAQ; o backend gera o embedding para que o agente a use nas respostas. */
   const handleSaveFaq = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || !answer.trim()) return;
@@ -55,6 +73,11 @@ export default function AdminPage() {
     }
   };
 
+  /**
+   * Cria um produto com valores padrão para os campos não expostos no formulário:
+   * SKU em maiúsculas, marca "Lumen" se vazia, sem desconto, tags fixas e uma única
+   * variação `{ cor: "Padrão" }` (SKU `<SKU>-STD`) com o estoque informado.
+   */
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sku.trim() || !name.trim() || !price) return;
@@ -91,6 +114,7 @@ export default function AdminPage() {
     }
   };
 
+  /** Executa a exclusão confirmada no modal (FAQ ou produto). */
   const executeDelete = async () => {
     if (!confirmDelete) return;
     try {
@@ -118,6 +142,7 @@ export default function AdminPage() {
             <h1 className="mt-2 text-2xl font-extrabold">Painel Admin • Sincronização RAG (RF04)</h1>
           </div>
 
+          {/* Alternador de abas FAQs / Produtos */}
           <div className="flex rounded-xl bg-[#132952] p-1 border border-white/10">
             <button
               onClick={() => setTab("faqs")}
@@ -140,6 +165,7 @@ export default function AdminPage() {
 
         {tab === "faqs" ? (
           <>
+            {/* ===== Aba FAQs: formulário + listagem ===== */}
             <form onSubmit={handleSaveFaq} className="rounded-2xl bg-[#132952] border border-white/10 p-6 space-y-4">
               <h2 className="text-base font-bold flex items-center gap-2">
                 <PlusCircle className="h-5 w-5 text-cyan-400" />
@@ -199,6 +225,7 @@ export default function AdminPage() {
           </>
         ) : (
           <>
+            {/* ===== Aba Produtos: formulário + listagem ===== */}
             <form onSubmit={handleSaveProduct} className="rounded-2xl bg-[#132952] border border-white/10 p-6 space-y-4">
               <h2 className="text-base font-bold flex items-center gap-2">
                 <PlusCircle className="h-5 w-5 text-cyan-400" />
@@ -250,6 +277,7 @@ export default function AdminPage() {
         )}
       </div>
 
+      {/* Modal de confirmação de exclusão (ação irreversível) */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="max-w-sm rounded-2xl bg-[#0F2145] border border-white/15 p-6 space-y-4">

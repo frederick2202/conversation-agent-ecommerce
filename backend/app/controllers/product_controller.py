@@ -1,3 +1,8 @@
+"""
+Rotas HTTP do catálogo de produtos: /api/v1/products
+Inclui leitura pública (vitrine) e CRUD usado pelo painel administrativo.
+"""
+
 from typing import Optional
 import uuid
 from fastapi import APIRouter, Depends, status
@@ -13,6 +18,7 @@ router = APIRouter(prefix="/api/v1/products", tags=["Produtos"])
 
 
 def get_product_service(db: AsyncSession = Depends(get_db)) -> ProductService:
+    """Injeção de dependência do ProductService por requisição."""
     return ProductService(ProductRepository(db), EmbeddingService())
 
 
@@ -22,6 +28,7 @@ async def list_products(
     search: Optional[str] = None,
     service: ProductService = Depends(get_product_service),
 ):
+    """Lista produtos. Query params opcionais: `category` ("Tudo" = todas) e `search` (texto livre)."""
     return await service.list_products(category=category, search=search)
 
 

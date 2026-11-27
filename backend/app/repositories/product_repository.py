@@ -1,3 +1,9 @@
+"""
+Acesso a dados de produtos e variações (tabelas `products` e `product_variants`).
+Todas as consultas de produto carregam variações e avaliações junto, pois o service
+precisa delas para calcular estoque total e nota média.
+"""
+
 from typing import Optional
 import uuid
 from sqlalchemy import or_, select
@@ -12,6 +18,11 @@ class ProductRepository:
         self.db = db
 
     async def list_all(self, category: Optional[str] = None, search: Optional[str] = None) -> list[Product]:
+        """Lista produtos (mais recentes primeiro) com filtros opcionais.
+
+        - `category`: filtro exato; o valor "Tudo" (usado pelo frontend) significa sem filtro.
+        - `search`: busca parcial, sem diferenciar maiúsculas, em nome, SKU, marca e resumo.
+        """
         stmt = select(Product).options(selectinload(Product.variants), selectinload(Product.reviews))
         if category and category != "Tudo":
             stmt = stmt.where(Product.category == category)
@@ -39,6 +50,8 @@ class ProductRepository:
         return result.scalar_one_or_none()
 
     async def find_by_name_or_sku(self, query: str) -> Optional[Product]:
+        """Retorna o primeiro produto cujo SKU seja igual (sem diferenciar maiúsculas)
+        ou cujo nome contenha o texto informado."""
         cleaned = query.strip()
         stmt = (
             select(Product)
@@ -59,6 +72,7 @@ class ProductRepository:
         return result.scalar_one_or_none()
 
     async def semantic_search(self, query_embedding: list[float], limit: int = 3) -> list[Product]:
+        """Retorna os produtos com menor distância de cosseno em relação ao vetor da consulta."""
         stmt = (
             select(Product)
             .options(selectinload(Product.variants), selectinload(Product.reviews))

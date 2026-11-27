@@ -1,3 +1,8 @@
+"""
+Rotas HTTP de administração das FAQs: /api/v1/faqs
+Criar/editar uma FAQ reindexa automaticamente seu embedding para a busca do agente.
+"""
+
 import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +17,7 @@ router = APIRouter(prefix="/api/v1/faqs", tags=["FAQs"])
 
 
 def get_faq_service(db: AsyncSession = Depends(get_db)) -> FaqService:
+    """Injeção de dependência do FaqService por requisição."""
     return FaqService(FaqRepository(db), EmbeddingService())
 
 

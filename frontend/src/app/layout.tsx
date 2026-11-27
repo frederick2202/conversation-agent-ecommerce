@@ -1,3 +1,14 @@
+/**
+ * Layout raiz do App Router (Next.js 14) — envolve todas as páginas.
+ *
+ * Define metadados de SEO, fonte Inter, tema escuro e monta, uma única vez
+ * para toda a aplicação:
+ * - `StoreProvider`: estado global (sessão, carrinho, toasts);
+ * - `CartDrawer`: painel lateral do carrinho (aberto pelo TopHeader);
+ * - `LumenChatWidget`: chat flutuante com o agente de IA.
+ * Por estarem no layout, carrinho e chat ficam disponíveis em todas as rotas
+ * (/, /checkout, /admin) sem perder estado na navegação client-side.
+ */
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -17,7 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className={`${inter.className} bg-[#0B172E] text-white antialiased`}>
         <StoreProvider>
+          {/* Conteúdo da rota atual */}
           {children}
+          {/* Componentes globais sobrepostos (fixed), compartilhando o StoreContext */}
           <CartDrawer />
           <LumenChatWidget />
         </StoreProvider>

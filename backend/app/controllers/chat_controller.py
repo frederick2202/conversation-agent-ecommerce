@@ -1,3 +1,7 @@
+"""
+Rotas HTTP do agente de IA (chat): /api/v1/chat/...
+"""
+
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +22,10 @@ router = APIRouter(prefix="/api/v1/chat", tags=["Agente IA"])
 
 
 def get_chat_service(db: AsyncSession = Depends(get_db)) -> ChatService:
+    """Monta o ChatService com todos os services que as ferramentas do agente utilizam.
+
+    Todos compartilham a mesma sessão de banco da requisição.
+    """
     emb = EmbeddingService()
     product_repo = ProductRepository(db)
     return ChatService(
@@ -30,18 +38,26 @@ def get_chat_service(db: AsyncSession = Depends(get_db)) -> ChatService:
 
 @router.get("/sessions/{session_id}", response_model=list[ChatHistoryItem])
 async def get_history(session_id: str, service: ChatService = Depends(get_chat_service)):
+    """Histórico de mensagens da sessão (inclui `ui_actions` para redesenhar botões/cards)."""
     return await service.get_history(session_id)
 
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_history(session_id: str, service: ChatService = Depends(get_chat_service)):
+    """Apaga o histórico de conversa da sessão."""
     await service.clear_session(session_id)
 
 
 @router.post("/stream")
 async def stream_chat(payload: ChatMessageRequest, service: ChatService = Depends(get_chat_service)):
+    """Envia uma mensagem ao agente e recebe a resposta em streaming (Server-Sent Events).
+
+    Eventos emitidos: `token` (texto incremental), `ui_actions` (opcional) e `done`.
+    Detalhes do formato em `app/services/chat_service.py`.
+    """
     return StreamingResponse(
         service.stream_reply(payload.session_id, payload.message),
         media_type="text/event-stream",
+        # Evita que proxies/navegador façam cache ou bufferizem o stream.
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
     )

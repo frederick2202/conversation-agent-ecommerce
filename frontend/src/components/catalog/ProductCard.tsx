@@ -1,14 +1,22 @@
 "use client";
 
+/**
+ * Card de produto exibido na grade do catálogo (app/page.tsx).
+ * Mostra marca, SKU, imagem, até 3 tags de especificação, desconto, preço
+ * e nota média. O card inteiro é clicável e abre o modal de detalhes.
+ */
+
 import { Star } from "lucide-react";
 import { Product } from "@/types";
 import { formatBRL } from "@/lib/api";
 
 interface ProductCardProps {
   product: Product;
+  /** Chamado ao clicar no card; a página usa para abrir o ProductDetailModal. */
   onSelect: (product: Product) => void;
 }
 
+/** Card clicável de um produto do catálogo. */
 export function ProductCard({ product, onSelect }: ProductCardProps) {
   return (
     <article
@@ -55,6 +63,7 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
             <span className="text-base font-extrabold text-white">{formatBRL(product.price)}</span>
           </div>
 
+          {/* Nota média, ou "Novo" quando o produto ainda não tem avaliações */}
           <span className="flex items-center gap-1 text-xs text-amber-400 font-semibold">
             <Star className="h-3.5 w-3.5 fill-amber-400" />
             {product.review_count > 0 ? product.average_rating.toFixed(1) : "Novo"}

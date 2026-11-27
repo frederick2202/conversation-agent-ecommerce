@@ -1,16 +1,30 @@
 "use client";
 
+/**
+ * Banner principal ("bento grid") exibido no topo da vitrine quando não há
+ * filtros ativos (ver app/page.tsx).
+ *
+ * Layout: carrossel grande com os 3 primeiros produtos recebidos (setas
+ * anterior/próximo, navegação circular) + coluna lateral com os produtos de
+ * índice 1 e 2 como cards menores. Clicar em qualquer destaque abre o
+ * ProductDetailModal através de `onOpenProduct`.
+ */
+
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Product } from "@/types";
 import { formatBRL } from "@/lib/api";
 
 interface HeroBentoProps {
+  /** Lista de produtos da vitrine; apenas os 3 primeiros são usados. */
   featured: Product[];
+  /** Callback para abrir o modal de detalhes do produto clicado. */
   onOpenProduct: (product: Product) => void;
 }
 
+/** Banner de destaques com carrossel + cards laterais. */
 export function HeroBento({ featured, onOpenProduct }: HeroBentoProps) {
+  /** Índice do slide atual do carrossel (0 a slides.length - 1). */
   const [slide, setSlide] = useState(0);
   const slides = featured.slice(0, 3);
   const current = slides[slide];
@@ -18,6 +32,7 @@ export function HeroBento({ featured, onOpenProduct }: HeroBentoProps) {
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#FF2A85] via-[#6D28D9] to-[#0B172E] pt-8 pb-10 px-4 lg:px-8">
+      {/* Chamada promocional com âncora para o catálogo */}
       <div className="mx-auto max-w-6xl text-center mb-8">
         <span className="inline-block rounded-md border border-white/60 bg-white/10 px-4 py-1 text-xs font-extrabold tracking-widest text-white uppercase backdrop-blur">
           LUMEN TECH WEEK
@@ -34,6 +49,7 @@ export function HeroBento({ featured, onOpenProduct }: HeroBentoProps) {
       </div>
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Carrossel principal (ocupa 2 colunas no desktop) */}
         <div className="relative lg:col-span-2 overflow-hidden rounded-2xl bg-[#132952] min-h-[300px] shadow-2xl border border-white/15">
           {current && (
             <>
@@ -63,6 +79,7 @@ export function HeroBento({ featured, onOpenProduct }: HeroBentoProps) {
                 </div>
               </div>
 
+              {/* Setas de navegação; o módulo (%) faz o carrossel dar a volta */}
               {slides.length > 1 && (
                 <>
                   <button
@@ -85,6 +102,7 @@ export function HeroBento({ featured, onOpenProduct }: HeroBentoProps) {
           )}
         </div>
 
+        {/* Coluna lateral com até 2 destaques menores */}
         <div className="flex flex-col gap-4">
           {sideCards.map((prod) => (
             <div

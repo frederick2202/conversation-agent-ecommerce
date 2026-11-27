@@ -1,18 +1,31 @@
 "use client";
 
+/**
+ * Cabeçalho fixo (sticky) da vitrine.
+ *
+ * Contém a barra de busca com seletor de categoria (útil no mobile, onde o
+ * Sidebar fica oculto), o atalho para o painel admin e o botão do carrinho com
+ * contador de itens (`cart.total_items` do StoreContext), que abre o CartDrawer.
+ * Filtros são controlados pela página (props `category`/`search`).
+ */
+
 import Link from "next/link";
 import { Search, ShieldCheck, ShoppingCart } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 
 interface TopHeaderProps {
+  /** Categoria selecionada ("Tudo" = sem filtro). */
   category: string;
   onCategoryChange: (cat: string) => void;
+  /** Texto da busca; a página aplica debounce antes de consultar a API. */
   search: string;
   onSearchChange: (val: string) => void;
 }
 
+/** Opções do seletor de categoria; devem coincidir com as categorias do backend/Sidebar. */
 const OPTIONS = ["Tudo", "Notebooks & PCs", "Smartphones", "Áudio & Fones", "Periféricos", "Monitores"];
 
+/** Cabeçalho com busca, filtro de categoria, link admin e botão do carrinho. */
 export function TopHeader({ category, onCategoryChange, search, onSearchChange }: TopHeaderProps) {
   const { cart, setCartOpen } = useStore();
 
@@ -20,6 +33,7 @@ export function TopHeader({ category, onCategoryChange, search, onSearchChange }
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 bg-[#0D1E3D]/95 px-4 lg:px-8 backdrop-blur border-b border-white/10">
       <div className="hidden lg:block w-24" />
 
+      {/* Barra de busca: seletor de categoria + campo de texto */}
       <div className="flex w-full max-w-2xl items-center rounded-full bg-white px-3 py-1.5 shadow-md">
         <select
           aria-label="Filtrar categoria"
@@ -43,6 +57,7 @@ export function TopHeader({ category, onCategoryChange, search, onSearchChange }
         />
       </div>
 
+      {/* Ações: link para o admin e botão que abre o CartDrawer */}
       <div className="flex items-center gap-3">
         <Link
           href="/admin"

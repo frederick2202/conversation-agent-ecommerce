@@ -1,3 +1,7 @@
+"""
+Rotas HTTP das avaliações de um produto: /api/v1/products/{product_id}/reviews
+"""
+
 import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +16,7 @@ router = APIRouter(prefix="/api/v1/products/{product_id}/reviews", tags=["Avalia
 
 
 def get_review_service(db: AsyncSession = Depends(get_db)) -> ReviewService:
+    """Injeção de dependência do ReviewService por requisição."""
     return ReviewService(ReviewRepository(db), ProductRepository(db))
 
 

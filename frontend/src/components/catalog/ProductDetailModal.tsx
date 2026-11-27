@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * Modal de detalhes do produto.
+ *
+ * Aberto pela vitrine (ProductCard/HeroBento) quando `product` não é nulo.
+ * Funcionalidades:
+ * - seleção de variação (variações sem estoque ficam desabilitadas) e preço
+ *   dinâmico conforme `price_override` da variação escolhida;
+ * - "Adicionar ao Carrinho" via `addToCart` do StoreContext (envia o ID da variação);
+ * - listagem e envio de avaliações (nota 1–5, nome e comentário opcionais).
+ */
+
 import { useEffect, useState } from "react";
 import { ShoppingCart, Star, X } from "lucide-react";
 import { api, formatBRL } from "@/lib/api";
@@ -7,20 +18,27 @@ import { useStore } from "@/context/StoreContext";
 import { Product, Review } from "@/types";
 
 interface Props {
+  /** Produto a exibir; `null` mantém o modal fechado. */
   product: Product | null;
   onClose: () => void;
+  /** Chamado após publicar uma avaliação, para a página recarregar nota média/contagem. */
   onReviewAdded: () => void;
 }
 
+/** Modal com detalhes, variações, compra e avaliações de um produto. */
 export function ProductDetailModal({ product, onClose, onReviewAdded }: Props) {
   const { addToCart, showToast } = useStore();
+  /** ID da variação escolhida ("" = nenhuma disponível/selecionada, botão de compra desabilitado). */
   const [selectedVariantId, setSelectedVariantId] = useState<string>("");
   const [reviews, setReviews] = useState<Review[]>([]);
+  // Campos do formulário de avaliação
   const [rating, setRating] = useState<number>(5);
   const [authorName, setAuthorName] = useState<string>("");
   const [comment, setComment] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Sempre que um novo produto é aberto: pré-seleciona a primeira variação com
+  // estoque e carrega as avaliações do produto.
   useEffect(() => {
     if (!product) return;
     const firstAvailable = product.variants.find((v) => v.stock_quantity > 0);
@@ -30,9 +48,14 @@ export function ProductDetailModal({ product, onClose, onReviewAdded }: Props) {
 
   if (!product) return null;
 
+  // Preço exibido: o da variação (se tiver preço próprio) ou o preço base do produto.
   const selectedVariant = product.variants.find((v) => v.id === selectedVariantId);
   const displayPrice = selectedVariant?.price_override ?? product.price;
 
+  /**
+   * Publica a avaliação. Usa "Cliente Lumen" se o nome estiver vazio,
+   * insere a nova avaliação no topo da lista local e reseta o formulário.
+   */
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating < 1 || rating > 5) return;
@@ -59,6 +82,7 @@ export function ProductDetailModal({ product, onClose, onReviewAdded }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[#0F2145] border border-white/15 text-white shadow-2xl">
+        {/* Cabeçalho fixo (sticky) com SKU, marca, nome e botão fechar */}
         <div className="sticky top-0 flex items-center justify-between bg-[#0B172E] px-6 py-4 border-b border-white/10">
           <div>
             <span className="text-xs font-mono text-cyan-400">{product.sku} • {product.brand}</span>
@@ -69,6 +93,7 @@ export function ProductDetailModal({ product, onClose, onReviewAdded }: Props) {
           </button>
         </div>
 
+        {/* Imagem + descrição, preço, seletor de variação e botão de compra */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
           <img src={product.image_url} alt={product.name} className="w-full rounded-xl object-cover aspect-video" />
 
@@ -115,6 +140,7 @@ export function ProductDetailModal({ product, onClose, onReviewAdded }: Props) {
           </div>
         </div>
 
+        {/* Seção de avaliações: formulário de envio + lista */}
         <div className="border-t border-white/10 p-6 space-y-6 bg-[#0B172E]/60">
           <h3 className="text-base font-extrabold">Avaliações dos Clientes ({reviews.length})</h3>
 

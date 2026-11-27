@@ -1,3 +1,7 @@
+"""
+Regras de negócio das avaliações (reviews) de produtos.
+"""
+
 import uuid
 from app.core.exceptions import NotFoundException, ValidationDomainException
 from app.models.entities import Review
@@ -12,6 +16,7 @@ class ReviewService:
         self.product_repo = product_repo
 
     async def list_reviews(self, product_id: uuid.UUID) -> list[ReviewResponse]:
+        """Lista as avaliações de um produto (mais recentes primeiro)."""
         product = await self.product_repo.get_by_id(product_id)
         if not product:
             raise NotFoundException("Produto não encontrado.")
@@ -24,9 +29,11 @@ class ReviewService:
         if not product:
             raise NotFoundException("Não é possível avaliar um produto inexistente.")
 
+        # `bool` é subclasse de `int` em Python, por isso True/False são rejeitados explicitamente.
         if not isinstance(payload.rating, int) or isinstance(payload.rating, bool) or not (1 <= payload.rating <= 5):
             raise ValidationDomainException("A nota da avaliação deve ser um número inteiro entre 1 e 5.")
 
+        # Comentário vazio ou só com espaços é salvo como NULL.
         comment_clean = payload.comment.strip() if payload.comment and payload.comment.strip() else None
         review = Review(
             product_id=product_id,

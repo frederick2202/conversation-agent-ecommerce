@@ -1,15 +1,24 @@
+/*
+ * Estilos globais da aplicação.
+ * Injeta as camadas do Tailwind (base, components, utilities) e define o tema
+ * escuro padrão. A maior parte da estilização é feita com classes Tailwind
+ * diretamente nos componentes (ver tailwind.config.ts).
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Informa ao navegador que a página é escura (scrollbars, inputs nativos etc.) */
 :root {
   color-scheme: dark;
 }
 
+/* Rolagem suave para âncoras internas, ex.: link "#catalogo" */
 html {
   scroll-behavior: smooth;
 }
 
+/* Cor de fundo/texto base da marca Lumen (mesmo #0B172E usado no layout) */
 body {
   background-color: #0B172E;
   color: #ffffff;

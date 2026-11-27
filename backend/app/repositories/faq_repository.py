@@ -1,3 +1,7 @@
+"""
+Acesso a dados das FAQs (tabela `faqs`), incluindo busca semântica com pgvector.
+"""
+
 from typing import Optional
 import uuid
 from sqlalchemy import select
@@ -19,6 +23,7 @@ class FaqRepository:
         return result.scalar_one_or_none()
 
     async def semantic_search(self, query_embedding: list[float], limit: int = 3) -> list[Faq]:
+        """Retorna as FAQs com menor distância de cosseno em relação ao vetor da consulta."""
         stmt = (
             select(Faq)
             .where(Faq.embedding.is_not(None))

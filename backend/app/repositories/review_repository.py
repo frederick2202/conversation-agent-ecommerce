@@ -1,3 +1,7 @@
+"""
+Acesso a dados das avaliações de produtos (tabela `reviews`).
+"""
+
 import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

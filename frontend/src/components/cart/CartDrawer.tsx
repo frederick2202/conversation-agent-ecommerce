@@ -1,10 +1,20 @@
 "use client";
 
+/**
+ * Painel lateral (drawer) do carrinho de compras.
+ *
+ * Montado globalmente em app/layout.tsx e aberto/fechado via `isCartOpen`
+ * do StoreContext (botão "Carrinho" no TopHeader). Lista os itens do carrinho,
+ * permite alterar quantidades/remover (cada ação chama a API e substitui o
+ * carrinho local pela resposta) e leva ao checkout.
+ */
+
 import Link from "next/link";
 import { Minus, Plus, Trash2, X } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import { formatBRL } from "@/lib/api";
 
+/** Drawer do carrinho; não renderiza nada enquanto estiver fechado. */
 export function CartDrawer() {
   const { cart, isCartOpen, setCartOpen, updateItemQty } = useStore();
   if (!isCartOpen) return null;
@@ -12,6 +22,7 @@ export function CartDrawer() {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
       <div className="flex h-full w-full max-w-md flex-col bg-[#0F2145] text-white shadow-2xl border-l border-white/10">
+        {/* Cabeçalho: título com total de itens + botão fechar */}
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 bg-[#0B172E]">
           <h2 className="text-base font-extrabold">Seu Carrinho ({cart?.total_items ?? 0})</h2>
           <button onClick={() => setCartOpen(false)} className="rounded-lg p-1.5 hover:bg-white/10">
@@ -19,6 +30,7 @@ export function CartDrawer() {
           </button>
         </div>
 
+        {/* Lista de itens (rolável); -/+ alteram a quantidade e a lixeira envia quantidade 0 (remove) */}
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
           {!cart || cart.items.length === 0 ? (
             <p className="text-center text-sm text-slate-400 mt-10">
@@ -64,6 +76,7 @@ export function CartDrawer() {
           )}
         </div>
 
+        {/* Rodapé: subtotal + link para checkout (desabilitado via CSS se o carrinho estiver vazio) */}
         <div className="border-t border-white/10 bg-[#0B172E] p-5 space-y-3">
           <div className="flex justify-between text-base font-extrabold">
             <span>Subtotal</span>
